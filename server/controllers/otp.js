@@ -2,7 +2,12 @@
 import Otp from "../models/Otp.js";
 import   {sendOtp }  from "../utility/sendOtp.js";
 
-const consumeOtp = async (email, otp) => {
+const otpCooldowns = new Map();
+const OTP_COOLDOWN_MS = 60 * 1000;
+
+const normalizeEmail = (email) => email.trim().toLowerCase();
+
+const validateOtp = async (email, otp) => {
   const otpRecord = await Otp.findOne({ email });
 
   if (!otpRecord) {
@@ -18,20 +23,43 @@ const consumeOtp = async (email, otp) => {
     return { success: false, status: 400, message: "Invalid OTP" };
   }
 
+  return { success: true };
+};
+
+const consumeOtp = async (email, otp) => {
+  const result = await validateOtp(email, otp);
+
+  if (!result.success) {
+    return result;
+  }
+
   await Otp.deleteOne({ email });
   return { success: true };
 };
 
 const requestOTP = async (req, res) => {
   try {
-    const { email } = req.body;
+    const rawEmail = req.body.email;
 
-    if (!email) {
+    if (!rawEmail) {
       return res.status(400).json({
         success: false,
         message: "Email is required",
       });
     }
+
+    const email = normalizeEmail(rawEmail);
+    const cooldownKey = `${req.ip}:${email}`;
+    const lastRequestAt = otpCooldowns.get(cooldownKey);
+
+    if (lastRequestAt && Date.now() - lastRequestAt < OTP_COOLDOWN_MS) {
+      return res.status(429).json({
+        success: false,
+        message: "Please wait before requesting another OTP",
+      });
+    }
+
+    otpCooldowns.set(cooldownKey, Date.now());
 
     const otp = Math.floor(
       100000 + Math.random() * 900000
@@ -53,7 +81,7 @@ const requestOTP = async (req, res) => {
     console.log("OTP email sent", emailResult?.id)
   } catch (error) {
     if (req.body.email) {
-      await Otp.deleteOne({ email: req.body.email });
+      await Otp.deleteOne({ email: normalizeEmail(req.body.email) });
     }
     console.error("OTP send failed:", error.message);
     res.status(500).json({
@@ -65,7 +93,8 @@ const requestOTP = async (req, res) => {
 
 const verifyOTP = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { otp } = req.body;
+    const email = req.body.email ? normalizeEmail(req.body.email) : "";
 
     if (!email || !otp) {
       return res.status(400).json({
@@ -74,7 +103,7 @@ const verifyOTP = async (req, res) => {
       });
     }
 
-    const result = await consumeOtp(email, otp);
+    const result = await validateOtp(email, otp);
 
     if (!result.success) {
       return res.status(result.status).json({

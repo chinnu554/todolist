@@ -1,7 +1,16 @@
 import Task from "../models/Task.js";
+import NotifyUser from "../models/Notification.js";
 import Users from "../models/User.js";
 import { sendTaskEmail } from "../utility/sendOtp.js";
 import cron from "node-cron";
+
+const getDateKey = (date = new Date()) =>
+    new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).format(date);
 
 const sendNotification = async() => {
     try {
@@ -22,27 +31,45 @@ const sendNotification = async() => {
                 continue;
             }
 
-            const taskRecords = await Task.find(
-                {
-                    user: user._id,
-                    cleared: false
-                },
-                {
-                    task: 1,
-                    _id: 0
+            const dateKey = getDateKey();
+
+            try {
+                await NotifyUser.create({
+                    email: user.email,
+                    notifiedDate: new Date(),
+                    dateKey,
+                });
+
+                const taskRecords = await Task.find(
+                    {
+                        user: user._id,
+                        cleared: false
+                    },
+                    {
+                        task: 1,
+                        _id: 0
+                    }
+                );
+
+                const emailResult = await sendTaskEmail(
+                    user.email,
+                    user.username,
+                    taskRecords
+                );
+
+                console.log(
+                    `Notification sent to ${user.email}`,
+                    emailResult?.id
+                );
+            } catch (err) {
+                if (err.code === 11000) {
+                    console.log(`Notification already sent to ${user.email} for ${dateKey}`);
+                    continue;
                 }
-            );
 
-            const emailResult = await sendTaskEmail(
-                user.email,
-                user.username,
-                taskRecords
-            );
-
-            console.log(
-                `Notification sent to ${user.email}`,
-                emailResult?.id
-            );
+                await NotifyUser.deleteOne({ email: user.email, dateKey });
+                console.error(`Notification failed for ${user.email}:`, err.message);
+            }
         }
     }
     catch (err) {

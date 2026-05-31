@@ -6,7 +6,7 @@ import { consumeOtp } from "./otp.js";
 const createToken = (user) => {
     return jwt.sign(
         { id: user._id, username: user.username },
-        process.env.JWT_SECRET || "todo-secret",
+        process.env.JWT_SECRET,
         { expiresIn: "7d" }
     );
 };
@@ -19,7 +19,8 @@ const formatUser = (user) => ({
 
 const register = async(req,res) => {
     try{
-        const {username,password,email,otp}= req.body;
+        const {username,password,otp}= req.body;
+        const email = req.body.email?.trim().toLowerCase();
         if(!username || !password || !email || !otp){
             return res.status(400).json({message:"Username, password, email, and OTP are required", success:false});
         }

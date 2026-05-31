@@ -1,5 +1,13 @@
 import resend from "../configs/resend.js";
 
+const escapeHtml = (value) =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
 async function sendOtp(email,otp){
      const { data, error } = await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL || "Todo App <onboarding@resend.dev>",
@@ -30,7 +38,7 @@ const sendTaskEmail = async (
   if(tasks.length > 0){
 
    const taskList = tasks
-    .map((task) => `<li>${task.task}</li>`)
+    .map((task) => `<li>${escapeHtml(task.task)}</li>`)
     .join("");
 
   const { data, error } = await resend.emails.send({
@@ -38,7 +46,7 @@ const sendTaskEmail = async (
     to: email,
     subject: "Weekly Task Reminder",
     html: `
-      <h2>Hello ${username},</h2>
+      <h2>Hello ${escapeHtml(username)},</h2>
 
       <p>You still have the following tasks pending:</p>
 
@@ -62,7 +70,7 @@ const sendTaskEmail = async (
     to: email,
     subject: "Weekly Task Reminder",
     html: `
-      <h2>Hello ${username},</h2>
+      <h2>Hello ${escapeHtml(username)},</h2>
       <h3>Congratulations</h3>
       <p>
       You completed all your tasks this week.

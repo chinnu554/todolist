@@ -10,6 +10,7 @@ async function connectDb(){
     }
     catch(err){
         console.log("Error occured in connection of database",err)
+        throw err;
     }
 }
 export default connectDb;

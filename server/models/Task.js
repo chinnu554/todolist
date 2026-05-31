@@ -13,12 +13,7 @@ const taskSchema = mongoose.Schema({
     user:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User",
-        requried:true
-    },
-    email:{
-        type:String,
         required:true,
-        trim:true
     }
 },{
     timestamps:true,
