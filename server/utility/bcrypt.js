@@ -7,5 +7,6 @@ const hashPassword = async(password) =>{
 
 const checkPassword = async(userPassword,storedPassword) =>{
     const result = await bcrypt.compare(userPassword,storedPassword);
+    return result;
 }
 export {hashPassword,checkPassword};

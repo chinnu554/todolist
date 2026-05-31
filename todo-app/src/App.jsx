@@ -1,178 +1,163 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import { useContext, useMemo, useState } from "react";
 import Task from "../components/Task/Task.jsx";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-
-const api = axios.create({ baseURL: API_URL });
-
-function getErrorMessage(error) {
-  return error.response?.data?.message || error.message || "Something went wrong";
-}
+import Footer from "../components/Footer/Footer.jsx";
+import Header from "../components/Header/Header.jsx";
+import userContext from "../context/userContext.jsx";
 
 function App() {
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("todo-user");
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
+  const {
+    user,
+    tasks,
+    message,
+    isLoading,
+    login,
+    register,
+    requestRegistrationOtp,
+    addTask,
+    updateTask,
+    completeTask,
+    deleteTask,
+  } = useContext(userContext);
   const [authMode, setAuthMode] = useState("login");
-  const [authForm, setAuthForm] = useState({ username: "", password: "" });
-  const [tasks, setTasks] = useState([]);
+  const [authForm, setAuthForm] = useState({
+    username: "",
+    password: "",
+    email: "",
+    otp: "",
+  });
+  const [isOtpStep, setIsOtpStep] = useState(false);
   const [taskText, setTaskText] = useState("");
-  const [message, setMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
   const remainingTasks = useMemo(
     () => tasks.filter((task) => !task.cleared).length,
     [tasks]
   );
 
-  const loadTasks = useCallback(async (userId) => {
-    await Promise.resolve();
-
-    setIsLoading(true);
-    setMessage("");
-
-    try {
-      const { data } = await api.post("/task/list", { userId });
-      setTasks(data.records || []);
-    } catch (error) {
-      setMessage(getErrorMessage(error));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user?._id) {
-      const timer = setTimeout(() => loadTasks(user._id), 0);
-      return () => clearTimeout(timer);
-    }
-  }, [loadTasks, user]);
-
   async function handleAuth(event) {
     event.preventDefault();
-    setIsLoading(true);
-    setMessage("");
 
-    try {
-      const { data } = await api.post(`/auth/${authMode}`, authForm);
-
-      if (authMode === "register") {
-        setAuthMode("login");
-        setMessage("Account created. You can log in now.");
+    if (authMode === "register") {
+      if (!isOtpStep) {
+        const didSendOtp = await requestRegistrationOtp(authForm.email);
+        if (didSendOtp) {
+          setIsOtpStep(true);
+        }
         return;
       }
 
-      if (!data.user) {
-        throw new Error(data.message || "Login failed");
+      const didRegister = await register(authForm);
+      if (didRegister) {
+        setAuthMode("login");
+        setIsOtpStep(false);
+        setAuthForm({ username: "", password: "", email: "", otp: "" });
       }
-
-      localStorage.setItem("todo-user", JSON.stringify(data.user));
-      setUser(data.user);
-      setAuthForm({ username: "", password: "" });
-    } catch (error) {
-      setMessage(getErrorMessage(error));
-    } finally {
-      setIsLoading(false);
+    } else {
+      const didLogin = await login(authForm);
+      if (didLogin) {
+        setAuthForm({ username: "", password: "", email: "", otp: "" });
+      }
     }
   }
 
-  async function addTask(event) {
+  function switchAuthMode() {
+    setAuthMode((mode) => (mode === "login" ? "register" : "login"));
+    setIsOtpStep(false);
+    setAuthForm({ username: "", password: "", email: "", otp: "" });
+  }
+
+  async function handleAddTask(event) {
     event.preventDefault();
     const task = taskText.trim();
 
     if (!task) return;
 
-    setIsLoading(true);
-    setMessage("");
-
-    try {
-      const { data } = await api.post("/task", {
-        task,
-        cleared: false,
-        userId: user._id,
-      });
-      setTasks((currentTasks) => [data.task, ...currentTasks]);
+    const didAdd = await addTask(task);
+    if (didAdd) {
       setTaskText("");
-    } catch (error) {
-      setMessage(getErrorMessage(error));
-    } finally {
-      setIsLoading(false);
     }
-  }
-
-  async function updateTask(taskId, newTask) {
-    await api.put(`/task/${taskId}`, { newTask, userId: user._id });
-    setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task._id === taskId ? { ...task, task: newTask } : task
-      )
-    );
-  }
-
-  async function completeTask(taskId) {
-    await api.patch(`/task/${taskId}/clear`);
-    setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task._id === taskId ? { ...task, cleared: true } : task
-      )
-    );
-  }
-
-  async function deleteTask(taskId) {
-    await api.delete(`/task/${taskId}`);
-    setTasks((currentTasks) =>
-      currentTasks.filter((task) => task._id !== taskId)
-    );
-  }
-
-  function logout() {
-    localStorage.removeItem("todo-user");
-    setUser(null);
-    setTasks([]);
-    setMessage("");
   }
 
   if (!user) {
     return (
+      <>
       <main className="app-shell auth-shell">
         <section className="panel auth-panel">
           <p className="eyebrow">Todo List</p>
-          <h1>{authMode === "login" ? "Welcome back" : "Create account"}</h1>
+          <h1>
+            {authMode === "login"
+              ? "Welcome back"
+              : isOtpStep
+                ? "Verify OTP"
+                : "Create account"}
+          </h1>
 
           <form className="stack" onSubmit={handleAuth}>
-            <input
-              type="text"
-              placeholder="Username"
-              value={authForm.username}
-              onChange={(event) =>
-                setAuthForm({ ...authForm, username: event.target.value })
-              }
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={authForm.password}
-              onChange={(event) =>
-                setAuthForm({ ...authForm, password: event.target.value })
-              }
-            />
+            {!isOtpStep ? (
+              <>
+                <input
+                  type="text"
+                  placeholder="Username"
+                  value={authForm.username}
+                  onChange={(event) =>
+                    setAuthForm({ ...authForm, username: event.target.value })
+                  }
+                />
+                {authMode === "register" && (
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={authForm.email}
+                    onChange={(event) =>
+                      setAuthForm({ ...authForm, email: event.target.value })
+                    }
+                  />
+                )}
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={authForm.password}
+                  onChange={(event) =>
+                    setAuthForm({ ...authForm, password: event.target.value })
+                  }
+                />
+              </>
+            ) : (
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength="6"
+                placeholder="Enter OTP"
+                value={authForm.otp}
+                onChange={(event) =>
+                  setAuthForm({ ...authForm, otp: event.target.value })
+                }
+              />
+            )}
             <button type="submit" disabled={isLoading}>
               {isLoading
                 ? "Please wait..."
                 : authMode === "login"
                   ? "Login"
-                  : "Register"}
+                  : isOtpStep
+                    ? "Verify & Register"
+                    : "Send OTP"}
             </button>
           </form>
+
+          {isOtpStep && (
+            <button
+              className="link-button"
+              type="button"
+              onClick={() => setIsOtpStep(false)}
+            >
+              Change registration details
+            </button>
+          )}
 
           <button
             className="link-button"
             type="button"
-            onClick={() =>
-              setAuthMode((mode) => (mode === "login" ? "register" : "login"))
-            }
+            onClick={switchAuthMode}
           >
             {authMode === "login"
               ? "Need an account? Register"
@@ -182,23 +167,22 @@ function App() {
           {message && <p className="message">{message}</p>}
         </section>
       </main>
+      <Footer/>
+      </>
     );
   }
 
   return (
+    <>
+    <Header />
     <main className="app-shell">
       <section className="panel todo-panel">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">Signed in as {user.username}</p>
-            <h1>Today's tasks</h1>
-          </div>
-          <button className="ghost-button" type="button" onClick={logout}>
-            Logout
-          </button>
-        </header>
+        <div className="section-heading">
+          <p className="eyebrow">Stay focused</p>
+          <h1>Today's tasks</h1>
+        </div>
 
-        <form className="add-form" onSubmit={addTask}>
+        <form className="add-form" onSubmit={handleAddTask}>
           <input
             type="text"
             placeholder="Add a new task"
@@ -237,6 +221,8 @@ function App() {
         </div>
       </section>
     </main>
+    <Footer/>
+    </>
   );
 }
 

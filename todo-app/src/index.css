@@ -53,7 +53,7 @@ input:focus {
 
 .app-shell {
   display: grid;
-  min-height: 100vh;
+  min-height: calc(100vh - 86px);
   place-items: center;
   padding: 2rem;
 }
@@ -91,6 +91,13 @@ h1 {
   line-height: 1;
 }
 
+h2 {
+  margin: 0;
+  color: #1d2433;
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
 .stack,
 .add-form,
 .edit-form {
@@ -109,6 +116,32 @@ h1 {
   gap: 1rem;
 }
 
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #ded8cc;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  padding: 1rem clamp(1rem, 4vw, 2rem);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.header-actions span {
+  color: #34514b;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
 .link-button,
 .ghost-button,
 .danger-button {
@@ -125,6 +158,16 @@ h1 {
 
 .danger-button {
   color: #a13f35;
+}
+
+.logout-button {
+  border: 1px solid #c7352f;
+  color: #c7352f;
+  background: transparent;
+}
+
+.logout-button:hover {
+  background: #fff0ef;
 }
 
 .message {
@@ -215,6 +258,8 @@ h1 {
   }
 
   .topbar,
+  .site-header,
+  .header-actions,
   .task-actions {
     align-items: stretch;
     flex-direction: column;

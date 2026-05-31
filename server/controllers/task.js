@@ -2,7 +2,8 @@ import Task from "../models/Task.js";
 
 const addTask = async (req, res) => {
   try {
-    const { task, cleared , userId } = req.body;
+    const { task, cleared } = req.body;
+    const userId = req.user.id;
 
     if (!task || cleared === undefined || !userId) {
       return res.status(400).json({
@@ -37,7 +38,7 @@ const addTask = async (req, res) => {
 
 const getTask = async(req,res) =>{
     try{
-        const {userId} = req.body;
+        const userId = req.user.id;
         if(!userId){
             return res.status(400).json({message:"login required",success:false});
         }
@@ -56,7 +57,8 @@ const getTask = async(req,res) =>{
 const updateTask = async(req,res) =>{
     try{
       const {taskId} = req.params;
-      const {newTask,userId} = req.body;
+      const {newTask} = req.body;
+      const userId = req.user.id;
       console.log(newTask,taskId,userId)
       if(!taskId || !newTask){
           return res.status(400).json({message:"TaskId is required for updating",success:false});
@@ -76,10 +78,11 @@ const updateTask = async(req,res) =>{
 const deleteTask = async(req,res) =>{
   try{
     const { taskId }=  req.params;
+    const userId = req.user.id;
     if(!taskId){
           return res.status(400).json({message:"TaskId is required for updating",success:false});
     }
-    const deletionResult = await Task.deleteOne({_id:taskId});
+    const deletionResult = await Task.deleteOne({_id:taskId,user:userId});
     if(deletionResult.deletedCount === 0){
       return res.status(404).json({message:"Task not found",success:false});
     }
@@ -95,10 +98,11 @@ const deleteTask = async(req,res) =>{
 const clearTask = async(req,res) =>{
     try{
       const {taskId} = req.params;
+      const userId = req.user.id;
       if(!taskId){
           return res.status(400).json({message:"TaskId is required for updating",success:false});
       }
-      const updationResult = await Task.updateOne({_id:taskId},{$set:{cleared:true}});
+      const updationResult = await Task.updateOne({_id:taskId,user:userId},{$set:{cleared:true}});
       if(updationResult.matchedCount === 0){
          return res.status(404).json({message:"Task not found",success:false});
       }     

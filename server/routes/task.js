@@ -7,8 +7,11 @@ import {
 } from "../controllers/task.js";
 
 import express from "express";
+import verifyJwt from "../middleware/verifyJwt.js";
 
 const taskRouter = express.Router();
+
+taskRouter.use(verifyJwt);
 
 taskRouter.post("/", addTask);
 
