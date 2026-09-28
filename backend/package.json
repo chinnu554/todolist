@@ -7,7 +7,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "node --test test/app.test.js"
+    "test": "node --test test/app.test.js",
+    "dev":"nodemon server.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
