@@ -1,17 +1,51 @@
 import userContext from "./Context.jsx";
-import { useState } from "react";
-function UserProvider({children}){
-    const [username,setUsername] = useState("");
-    const [token,setToken] = useState("");
-    const [todos,setTodos] = useState([]);
-    const[error,setError] = useState(null);
+import { useState, useEffect } from "react";
+import { getMe } from "../services/authServices.js";
+function UserProvider({ children }) {
+  const [user, setUser] = useState({});
+  const [todos, setTodos] = useState([]);
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [error, setError] = useState(null);
 
-    return(
-        <userContext.Provider value={{username,setUsername,token,setToken,todos,setTodos,error,setError}}>
-            {children}
-        </userContext.Provider>
-    )
+  useEffect(() => {
+    if (!token) return;
 
+    const fetchData = async () => {
+      try {
+        const response = await getMe(token);
+        setUser(response.data.user);
+        setError(null);
+      } catch (err) {
+        console.log(err);
+        if (err.response?.status === 401) {
+                localStorage.removeItem("token");
+                setToken("");
+                setUser(null);
+            }
+
+            setError(err.message);
+      }
+    };
+
+    fetchData();
+  }, [token]);
+
+  return (
+    <userContext.Provider
+      value={{
+        user,
+        setUser,
+        token,
+        setToken,
+        todos,
+        setTodos,
+        error,
+        setError,
+      }}
+    >
+      {children}
+    </userContext.Provider>
+  );
 }
 
 export default UserProvider;
