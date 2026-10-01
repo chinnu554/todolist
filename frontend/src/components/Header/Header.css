@@ -1,0 +1,38 @@
+header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #1f9d5a 0%, #166f46 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(17, 90, 56, 0.15);
+}
+
+header h1 {
+    margin: 0;
+    font-size: clamp(1.5rem, 2vw, 2.2rem);
+    font-weight: 700;
+}
+
+.header-buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-buttons button {
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.header-buttons h3 {
+    margin: 0;
+    font-weight: 600;
+}

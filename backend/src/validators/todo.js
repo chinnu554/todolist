@@ -6,14 +6,16 @@ const objectIdSchema = z.string().trim().refine((val) => mongoose.Types.ObjectId
 })
 
 export const createTodoSchema = z.object({
-    title: z.string().trim().min(2).max(100),
-    description: z.string().trim().min(5).max(200),
+    description: z.string().trim().min(1).max(200),
 })
 
 export const updateTodoSchema = z.object({
     todoId: objectIdSchema,
-    title: z.string().trim().min(2).max(100).optional(),
-    description: z.string().trim().min(5).max(200).optional()
+    description: z.string().trim().min(1).max(200).optional()
+})
+
+export const toggleTodoSchema = z.object({
+    todoId: objectIdSchema
 })
 
 export const deleteTodoSchema = z.object({
